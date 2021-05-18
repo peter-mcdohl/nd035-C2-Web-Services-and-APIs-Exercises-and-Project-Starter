@@ -4,9 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -65,6 +63,12 @@ public class CarControllerTest {
     public void setup() {
         Car car = getCar();
         car.setId(1L);
+        Car updatedCar = car;
+        updatedCar.setCondition(Condition.NEW);
+        Details details = updatedCar.getDetails();
+        details.setMileage(35000);
+        updatedCar.setDetails(details);
+        given(carService.save(updatedCar)).willReturn(updatedCar);
         given(carService.save(any())).willReturn(car);
         given(carService.findById(any())).willReturn(car);
         given(carService.list()).willReturn(Collections.singletonList(car));
@@ -127,6 +131,27 @@ public class CarControllerTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(content().json(json.write(car).getJson()));
+    }
+
+    /**
+     * Tests for successful modification of existing car in the system
+     * @throws Exception when car modification fails in the system
+     */
+    @Test
+    public void updateCar() throws Exception {
+        Car car = getCar();
+        car.setCondition(Condition.NEW);
+        Details details = car.getDetails();
+        details.setMileage(35000);
+        car.setDetails(details);
+        mvc.perform(
+                put(new URI("/cars/1"))
+                        .content(json.write(car).getJson())
+                        .contentType(MediaType.APPLICATION_JSON_UTF8)
+                        .accept(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.details.mileage", is(35000)))
+                .andExpect(jsonPath("$.condition", is("NEW")));
     }
 
     /**
